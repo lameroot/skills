@@ -24,6 +24,7 @@ try:  # package-style import when loaded as a module; fallback for direct script
     from . import auth  # noqa: F401  registers auth/* handlers
     from . import clock
     from . import doctor  # noqa: F401  registers doctor/check handler
+    from . import indexer  # noqa: F401  registers bundle/index handler
     from .connectors import doc as _doc_mod, note as _note_mod  # noqa: F401
     from .okf import validate  # noqa: F401  registers bundle/validate handler
     from .envelope import emit_error, emit_success
@@ -34,6 +35,7 @@ except ImportError:
     import auth  # noqa: F401,E402  type: ignore[no-redef]
     import clock  # type: ignore[no-redef]
     import doctor  # noqa: F401,E402  type: ignore[no-redef]
+    import indexer  # noqa: F401,E402  type: ignore[no-redef]
     from connectors import doc as _doc_mod, note as _note_mod  # noqa: F401,E402
     from okf import validate  # noqa: F401,E402  type: ignore[no-redef]
     from envelope import emit_error, emit_success  # type: ignore[no-redef]
@@ -111,6 +113,11 @@ def build_parser() -> argparse.ArgumentParser:
     bv = bundle_actions.add_parser("validate", help="check OKF v0.1 conformance", formatter_class=_TimedHelpFormatter)
     bv.add_argument("--bundle", required=True, help="path to OKF bundle/vault dir")
     bv.add_argument("--json", action="store_true", help="JSON output")
+    bi = bundle_actions.add_parser("index", help="(re)build the FTS5 index", formatter_class=_TimedHelpFormatter)
+    bi.add_argument("--rebuild", action="store_true", help="full rebuild (ignore content_hash)")
+    bi.add_argument("--json", action="store_true", help="JSON output")
+    bi.add_argument("--dry-run", action="store_true", help="preview without writing")
+    bi.add_argument("--yes", action="store_true", help="execute the mutation")
 
     note_p = resources.add_parser("note", help="personal notes", formatter_class=_TimedHelpFormatter)
     note_actions = note_p.add_subparsers(dest="action", required=True, metavar="<action>")
