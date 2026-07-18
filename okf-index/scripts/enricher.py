@@ -1,0 +1,162 @@
+"""Pluggable LLM enrichment providers. Always-on ingest step (Q3 decision).
+
+Factory create_provider() -> EnrichProvider | None via settings/credentials.
+Falls back gracefully on import/network/rate-limit errors.
+"""
+from __future__ import annotations
+
+import json
+import logging
+from dataclasses import dataclass, field
+from typing import Protocol
+
+from okf.concept import Concept
+
+logger = logging.getLogger("okf-index.enricher")
+MAX_BODY = 4000  # chars sent to LLM
+
+
+@dataclass
+class EnrichResult:
+    description: str = ""
+    tags: list[str] = field(default_factory=list)
+    suggested_links: list[str] = field(default_factory=list)  # concept titles to link to
+
+
+class EnrichProvider(Protocol):
+    def enrich(self, concept: Concept, existing_titles: list[str]) -> EnrichResult: ...
+
+
+class FakeEnrichProvider:
+    """Deterministic test double. Returns canned results based on concept body hash."""
+    def enrich(self, concept: Concept, existing_titles: list[str]) -> EnrichResult:
+        body = concept.body or ""
+        keys = [t for t in existing_titles if any(w in body.lower() for w in t.lower().split())]
+        return EnrichResult(
+            description=f"LLM-generated summary of: {body[:80].strip()!r}",
+            tags=["auto-tag-1", "auto-tag-2"],
+            suggested_links=keys[:3],
+        )
+
+
+def _prompt(concept: Concept, existing_titles: list[str]) -> str:
+    return json.dumps(
+        {
+            "task": "Enrich an OKF knowledge concept",
+            "concept": {
+                "type": concept.type,
+                "title": concept.title,
+                "body": (concept.body or "")[:MAX_BODY],
+            },
+            "existing_concept_titles": existing_titles[:200],
+            "output": {
+                "description": "one-sentence summary (max 200 chars)",
+                "tags": ["lowercase", "short", "descriptive"],
+                "suggested_links": ["title of existing concept to link to (or empty list)"],
+            },
+        },
+        ensure_ascii=False,
+    )
+
+
+def _parse(response_text: str) -> EnrichResult:
+    try:
+        data = json.loads(response_text)
+        return EnrichResult(
+            description=str(data.get("description", ""))[:200],
+            tags=data.get("tags") or [],
+            suggested_links=data.get("suggested_links") or [],
+        )
+    except (json.JSONDecodeError, TypeError):
+        return EnrichResult()
+
+
+def create_provider() -> EnrichProvider | None:
+    """Factory: resolve provider from settings + credentials. Returns None if unavailable."""
+    from settings import load_settings_config, resolve_runtime_settings
+
+    cfg = load_settings_config()
+    vals, _ = resolve_runtime_settings(cfg)
+    provider_name = vals.get("OKF_ENRICH_PROVIDER", "gemini").lower()
+    model = vals.get("OKF_ENRICH_MODEL", "") or None
+
+    if provider_name == "gemini":
+        try:
+            from google import genai
+
+            from credentials import require_credentials
+
+            creds = require_credentials(["GEMINI_API_KEY"], cfg)
+            api_key = creds.get("GEMINI_API_KEY")
+            if not api_key:
+                logger.warning("GEMINI_API_KEY not configured; enrich will use stub")
+                return None
+            return GeminiProvider(api_key, model=model)
+        except ImportError:
+            logger.warning("google-generativeai not installed; pip install google-generativeai")
+            return None
+    elif provider_name == "openai":
+        try:
+            from openai import OpenAI
+
+            from credentials import require_credentials
+
+            creds = require_credentials(["OPENAI_API_KEY"], cfg)
+            api_key = creds.get("OPENAI_API_KEY")
+            if not api_key:
+                logger.warning("OPENAI_API_KEY not configured; enrich will use stub")
+                return None
+            return OpenAIProvider(api_key, model=model)
+        except ImportError:
+            logger.warning("openai not installed; pip install openai")
+            return None
+    else:
+        logger.warning("unknown enrich provider '%s'", provider_name)
+        return None
+
+
+class GeminiProvider:
+    def __init__(self, api_key: str, model: str | None = None):
+        from google import genai
+
+        self.client = genai.Client(api_key=api_key)
+        self.model = model or "gemini-2.0-flash"
+
+    def enrich(self, concept: Concept, existing_titles: list[str]) -> EnrichResult:
+        try:
+            resp = self.client.models.generate_content(
+                model=self.model,
+                contents=_prompt(concept, existing_titles),
+                config={"response_mime_type": "application/json", "max_output_tokens": 256},
+            )
+            return _parse(resp.text)
+        except Exception:
+            logger.exception("Gemini enrichment failed; falling back to stub")
+            return EnrichResult()
+
+    def probe(self) -> str:
+        return f"gemini/{self.model}"
+
+
+class OpenAIProvider:
+    def __init__(self, api_key: str, model: str | None = None):
+        from openai import OpenAI
+
+        self.client = OpenAI(api_key=api_key)
+        self.model = model or "gpt-4.1-mini"
+
+    def enrich(self, concept: Concept, existing_titles: list[str]) -> EnrichResult:
+        try:
+            resp = self.client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "user", "content": _prompt(concept, existing_titles)}],
+                max_tokens=256,
+                response_format={"type": "json_object"},
+            )
+            return _parse(resp.choices[0].message.content or "")
+        except Exception:
+            logger.exception("OpenAI enrichment failed; falling back to stub")
+            return EnrichResult()
+
+    def probe(self) -> str:
+        return f"openai/{self.model}"

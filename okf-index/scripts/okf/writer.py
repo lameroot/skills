@@ -29,3 +29,15 @@ def write_concept(vault: Path, concept: Concept) -> Path:
     path.write_text(text, encoding="utf-8")
     append_log(vault / "log.md", _today(), [f"**Ingest**: {source}/{stem}"])
     return path
+
+
+def list_titles(vault: Path) -> list[str]:
+    """Return titles of all existing concepts in the vault (no DB needed)."""
+    titles: list[str] = []
+    for path in sorted(vault.rglob("*.md")):
+        if path.name in ("index.md", "log.md"):
+            continue
+        meta, _body = frontmatter.parse(path.read_text(encoding="utf-8"))
+        if meta and meta.get("title"):
+            titles.append(meta["title"])
+    return titles

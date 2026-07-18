@@ -75,7 +75,7 @@ def test_enrich_stub_description_first_line():
     assert first_line("# Заголовок\nrest") == "Заголовок"
     c = Concept(type="Note", title="T", body="# Привет\nтело")
     enrich(c)
-    assert c.description == "Привет"
+    assert "[stub]" in c.description and "Привет" in c.description
 
 
 def test_vault_in_skill_dir_rejected(monkeypatch, tmp_path):

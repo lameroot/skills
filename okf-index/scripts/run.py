@@ -5,6 +5,7 @@
 #   "keyring>=25,<26",
 #   "pyyaml>=6,<7",
 #   "unidecode>=1.3,<2",
+#   "google-generativeai>=0.8",
 # ]
 # ///
 """okf-index CLI launcher.

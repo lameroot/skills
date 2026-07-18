@@ -59,16 +59,36 @@ def doctor_check(config: dict | None = None, env: dict[str, str] | None = None, 
 
     backend = _get_backend(keyring_backend)
     backend_name = "unavailable" if backend is None else type(backend).__name__
+
+    probe: str = _PROBE_SKIPPED
+    try:
+        from enricher import create_provider
+
+        prov = create_provider()
+        if prov:
+            try:
+                model_id = prov.probe()
+                probe = model_id
+            except Exception:
+                return {
+                    "ok": False, "exit_code": 4, "settings": rows, "backend": backend_name,
+                    "probe": "enrich provider auth failed",
+                }
+        else:
+            probe = "skipped (no enrich provider configured)"
+    except Exception:  # noqa: BLE001
+        probe = "skipped (enrich provider unavailable)"
+
     if missing_required:
         return {
             "ok": False,
             "exit_code": 2,
             "settings": rows,
             "backend": backend_name,
-            "probe": _PROBE_SKIPPED,
+            "probe": probe,
             "missing_required": missing_required,
         }
-    return {"ok": True, "exit_code": 0, "settings": rows, "backend": backend_name, "probe": _PROBE_SKIPPED}
+    return {"ok": True, "exit_code": 0, "settings": rows, "backend": backend_name, "probe": probe}
 
 
 @register("doctor", "check")

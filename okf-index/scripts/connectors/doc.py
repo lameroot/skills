@@ -9,7 +9,7 @@ from enrich import enrich
 from envelope import emit_error, emit_success
 from errors import NotFoundError
 from okf.concept import Concept
-from okf.writer import write_concept
+from okf.writer import list_titles, write_concept
 from registry import register
 from vault import resolve_vault
 
@@ -53,10 +53,11 @@ def doc_ingest(args: argparse.Namespace, out, err) -> int:
         return 2
 
     created = []
+    existing_titles = list_titles(vault)
     for f in sorted(files):
         body = f.read_text(encoding="utf-8", errors="replace")
         concept = Concept(type="Document", title=f.stem, body=body, source="doc", resource=str(f))
-        enrich(concept)
+        enrich(concept, existing_titles)
         path = write_concept(vault, concept)
         created.append(str(path.relative_to(vault)))
     emit_success({"created": created, "skipped": [s.name for s in skipped]}, out)
