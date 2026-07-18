@@ -3,6 +3,8 @@
 # requires-python = ">=3.11"
 # dependencies = [
 #   "keyring>=25,<26",
+#   "pyyaml>=6,<7",
+#   "unidecode>=1.3,<2",
 # ]
 # ///
 """okf-index CLI launcher.
