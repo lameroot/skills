@@ -25,6 +25,7 @@ try:  # package-style import when loaded as a module; fallback for direct script
     from . import clock
     from . import doctor  # noqa: F401  registers doctor/check handler
     from . import indexer  # noqa: F401  registers bundle/index handler
+    from . import search  # noqa: F401  registers search/tag/stats handlers
     from .connectors import doc as _doc_mod, note as _note_mod  # noqa: F401
     from .okf import validate  # noqa: F401  registers bundle/validate handler
     from .envelope import emit_error, emit_success
@@ -36,6 +37,7 @@ except ImportError:
     import clock  # type: ignore[no-redef]
     import doctor  # noqa: F401,E402  type: ignore[no-redef]
     import indexer  # noqa: F401,E402  type: ignore[no-redef]
+    import search  # noqa: F401,E402  type: ignore[no-redef]
     from connectors import doc as _doc_mod, note as _note_mod  # noqa: F401,E402
     from okf import validate  # noqa: F401,E402  type: ignore[no-redef]
     from envelope import emit_error, emit_success  # type: ignore[no-redef]
@@ -118,6 +120,25 @@ def build_parser() -> argparse.ArgumentParser:
     bi.add_argument("--json", action="store_true", help="JSON output")
     bi.add_argument("--dry-run", action="store_true", help="preview without writing")
     bi.add_argument("--yes", action="store_true", help="execute the mutation")
+    bs = bundle_actions.add_parser("stats", help="bundle concept counts by type/source", formatter_class=_TimedHelpFormatter)
+    bs.add_argument("--json", action="store_true", help="JSON output")
+
+    srch = resources.add_parser("search", help="search the knowledge base", formatter_class=_TimedHelpFormatter)
+    srch.set_defaults(action="search")
+    srch.add_argument("q", help="search query (FTS5 MATCH)")
+    srch.add_argument("--tag", help="filter by tag")
+    srch.add_argument("--type", help="filter by OKF type")
+    srch.add_argument("--limit", type=int, default=20, help="max results (default 20)")
+    srch.add_argument("--json", action="store_true", help="JSON output")
+
+    tag = resources.add_parser("tag", help="tag index", formatter_class=_TimedHelpFormatter)
+    tag_actions = tag.add_subparsers(dest="action", required=True, metavar="<action>")
+    tag_list = tag_actions.add_parser("list", help="list all tags with counts", formatter_class=_TimedHelpFormatter)
+    tag_list.add_argument("--json", action="store_true", help="JSON output")
+    tag_show = tag_actions.add_parser("show", help="concepts for a specific tag", formatter_class=_TimedHelpFormatter)
+    tag_show.add_argument("tag", help="tag name")
+    tag_show.add_argument("--limit", type=int, default=20, help="max results")
+    tag_show.add_argument("--json", action="store_true", help="JSON output")
 
     note_p = resources.add_parser("note", help="personal notes", formatter_class=_TimedHelpFormatter)
     note_actions = note_p.add_subparsers(dest="action", required=True, metavar="<action>")
