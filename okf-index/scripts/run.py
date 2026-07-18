@@ -6,6 +6,9 @@
 #   "pyyaml>=6,<7",
 #   "unidecode>=1.3,<2",
 #   "google-generativeai>=0.8",
+#   "requests>=2.31",
+#   "beautifulsoup4>=4.12",
+#   "markdownify>=0.11",
 # ]
 # ///
 """okf-index CLI launcher.
@@ -27,6 +30,7 @@ try:  # package-style import when loaded as a module; fallback for direct script
     from . import doctor  # noqa: F401  registers doctor/check handler
     from . import indexer  # noqa: F401  registers bundle/index handler
     from . import search  # noqa: F401  registers search/tag/stats handlers
+    from .confluence import ingest as _cf_ingest  # noqa: F401
     from .connectors import doc as _doc_mod, note as _note_mod  # noqa: F401
     from .okf import validate  # noqa: F401  registers bundle/validate handler
     from .envelope import emit_error, emit_success
@@ -39,6 +43,7 @@ except ImportError:
     import doctor  # noqa: F401,E402  type: ignore[no-redef]
     import indexer  # noqa: F401,E402  type: ignore[no-redef]
     import search  # noqa: F401,E402  type: ignore[no-redef]
+    from confluence import ingest as _cf_ingest  # noqa: F401,E402
     from connectors import doc as _doc_mod, note as _note_mod  # noqa: F401,E402
     from okf import validate  # noqa: F401,E402  type: ignore[no-redef]
     from envelope import emit_error, emit_success  # type: ignore[no-redef]
@@ -140,6 +145,21 @@ def build_parser() -> argparse.ArgumentParser:
     tag_show.add_argument("tag", help="tag name")
     tag_show.add_argument("--limit", type=int, default=20, help="max results")
     tag_show.add_argument("--json", action="store_true", help="JSON output")
+
+    cf = resources.add_parser("confluence", help="Confluence operations", formatter_class=_TimedHelpFormatter)
+    cf_actions = cf.add_subparsers(dest="action", required=True, metavar="<action>")
+    for act, h in (("get", "fetch a page by id"), ("search", "search pages via CQL"), ("ingest", "ingest a page as an OKF concept")):
+        p = cf_actions.add_parser(act, help=h, formatter_class=_TimedHelpFormatter)
+        if act in ("get", "ingest"):
+            p.add_argument("page_id", help="Confluence page ID")
+        elif act == "search":
+            p.add_argument("q", help="search query text")
+            p.add_argument("--space", help="space key filter")
+            p.add_argument("--limit", type=int, default=20)
+        p.add_argument("--json", action="store_true", help="JSON output")
+        if act == "ingest":
+            p.add_argument("--dry-run", action="store_true")
+            p.add_argument("--yes", action="store_true")
 
     note_p = resources.add_parser("note", help="personal notes", formatter_class=_TimedHelpFormatter)
     note_actions = note_p.add_subparsers(dest="action", required=True, metavar="<action>")
