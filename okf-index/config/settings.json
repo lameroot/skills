@@ -1,0 +1,165 @@
+{
+  "version": 1,
+  "skill": "okf-index",
+  "keyring_service": "skills.okf-index",
+  "settings": [
+    {
+      "name": "OKF_VAULT_PATH",
+      "type": "string",
+      "required": true,
+      "credential": false,
+      "default": "~/okf-vault",
+      "description": "Directory used as the OKF bundle / Obsidian vault root.",
+      "help": {
+        "source": "The skill ships this safe default.",
+        "instructions": [
+          "Keep the default for normal use, or override with OKF_VAULT_PATH.",
+          "Must NOT point inside the skill directory."
+        ]
+      }
+    },
+    {
+      "name": "OKF_ENRICH_PROVIDER",
+      "type": "string",
+      "required": false,
+      "credential": false,
+      "default": "gemini",
+      "description": "LLM provider used for ingestion enrichment (gemini|openai|local).",
+      "help": {
+        "source": "The skill ships this default.",
+        "instructions": ["Override with OKF_ENRICH_PROVIDER when needed."]
+      }
+    },
+    {
+      "name": "OKF_ENRICH_MODEL",
+      "type": "string",
+      "required": false,
+      "credential": false,
+      "default": "",
+      "description": "Optional model id for enrichment; empty = provider default.",
+      "help": {
+        "source": "The skill ships this default.",
+        "instructions": ["Override with OKF_ENRICH_MODEL when needed."]
+      }
+    },
+    {
+      "name": "OKF_INDEX_AUTO_CONFIRM",
+      "type": "boolean",
+      "required": false,
+      "credential": false,
+      "default": false,
+      "description": "Allow trusted automation to skip mutation confirmation.",
+      "help": {
+        "source": "The skill ships this safe default.",
+        "instructions": ["Override with OKF_INDEX_AUTO_CONFIRM=1 only in trusted automation."]
+      }
+    },
+    {
+      "name": "OKF_BODY_MAX_BYTES",
+      "type": "integer",
+      "required": false,
+      "credential": false,
+      "default": 5242880,
+      "description": "Max body bytes indexed per concept (larger bodies are truncated).",
+      "help": {
+        "source": "The skill ships this default.",
+        "instructions": ["Override with OKF_BODY_MAX_BYTES when needed."]
+      }
+    },
+    {
+      "name": "OKF_FTS_TOKENIZER",
+      "type": "string",
+      "required": false,
+      "credential": false,
+      "default": "unicode61 remove_diacritics 2",
+      "description": "FTS5 tokenizer spec (Cyrillic-aware).",
+      "help": {
+        "source": "The skill ships this default.",
+        "instructions": ["Override with OKF_FTS_TOKENIZER only if you know the FTS5 grammar."]
+      }
+    },
+    {
+      "name": "GEMINI_API_KEY",
+      "type": "string",
+      "required": false,
+      "credential": true,
+      "secret": true,
+      "account": "GEMINI_API_KEY",
+      "prompt": "Gemini API key",
+      "description": "API key for the Gemini enrichment provider.",
+      "help": {
+        "source": "Obtain from Google AI Studio or Vertex AI.",
+        "instructions": [
+          "Use auth setup for local OS keyring storage.",
+          "Use GEMINI_API_KEY only as the CI/headless environment fallback.",
+          "Never put the value in chat, argv, settings.json, or repository files."
+        ]
+      }
+    },
+    {
+      "name": "OPENAI_API_KEY",
+      "type": "string",
+      "required": false,
+      "credential": true,
+      "secret": true,
+      "account": "OPENAI_API_KEY",
+      "prompt": "OpenAI API key",
+      "description": "API key for an OpenAI-compatible enrichment provider.",
+      "help": {
+        "source": "Obtain from your OpenAI-compatible provider.",
+        "instructions": [
+          "Use auth setup for local OS keyring storage.",
+          "Use OPENAI_API_KEY only as the CI/headless environment fallback.",
+          "Never put the value in chat, argv, settings.json, or repository files."
+        ]
+      }
+    },
+    {
+      "name": "CONFLUENCE_BASE_URL",
+      "type": "string",
+      "required": false,
+      "credential": false,
+      "default": "",
+      "description": "Base URL of the Confluence instance (embedded client).",
+      "help": {
+        "source": "Set to your Confluence instance URL.",
+        "instructions": ["Override with CONFLUENCE_BASE_URL."]
+      }
+    },
+    {
+      "name": "CONFLUENCE_USERNAME",
+      "type": "string",
+      "required": false,
+      "credential": true,
+      "secret": false,
+      "account": "CONFLUENCE_USERNAME",
+      "prompt": "Confluence username",
+      "description": "Username for the Confluence REST API.",
+      "help": {
+        "source": "Your Confluence account.",
+        "instructions": [
+          "Use auth setup for local OS keyring storage.",
+          "Use CONFLUENCE_USERNAME only as the CI/headless environment fallback."
+        ]
+      }
+    },
+    {
+      "name": "CONFLUENCE_API_TOKEN",
+      "type": "string",
+      "required": false,
+      "credential": true,
+      "secret": true,
+      "account": "CONFLUENCE_API_TOKEN",
+      "prompt": "Confluence API token",
+      "description": "Bearer token for the Confluence REST API.",
+      "help": {
+        "source": "Create a personal access token in Confluence profile settings.",
+        "instructions": [
+          "Use auth setup so terminal input is hidden and stored in the OS keyring.",
+          "Use CONFLUENCE_API_TOKEN only as the CI/headless environment fallback.",
+          "Never put the value in chat, argv, settings.json, or repository files."
+        ]
+      }
+    }
+  ]
+}
