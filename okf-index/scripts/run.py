@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 # /// script
 # requires-python = ">=3.11"
-# dependencies = []
+# dependencies = [
+#   "keyring>=25,<26",
+# ]
 # ///
 """okf-index CLI launcher.
 
 Run from the skill directory:
   uv run --script scripts/run.py schema get --json
+  uv run --script scripts/run.py auth status --json
   uv run --script scripts/run.py schema get --help
 """
 from __future__ import annotations
@@ -14,17 +17,20 @@ from __future__ import annotations
 import argparse
 import sys
 from pathlib import Path
-from typing import Callable
 
 try:  # package-style import when loaded as a module; fallback for direct script run
+    from . import auth  # noqa: F401  registers auth/* handlers
     from . import clock
     from .envelope import emit_error, emit_success
     from .errors import SkillError, UsageError
+    from .registry import HANDLERS, register
 except ImportError:
     sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import auth  # noqa: F401,E402  type: ignore[no-redef]
     import clock  # type: ignore[no-redef]
     from envelope import emit_error, emit_success  # type: ignore[no-redef]
     from errors import SkillError, UsageError  # type: ignore[no-redef]
+    from registry import HANDLERS, register  # type: ignore[no-redef]
 
 VERSION = "0.1.0"
 OKF_VERSION = "0.1"
@@ -39,17 +45,6 @@ class _TimedHelpFormatter(argparse.RawDescriptionHelpFormatter):
         except Exception:  # noqa: BLE001 - never let help crash on clock failure
             header = ""
         return header + super().format_help()
-
-Handler = Callable[[argparse.Namespace, object, object], int]
-HANDLERS: dict[tuple[str, str], Handler] = {}
-
-
-def register(resource: str, action: str) -> Callable[[Handler], Handler]:
-    def decorator(fn: Handler) -> Handler:
-        HANDLERS[(resource, action)] = fn
-        return fn
-
-    return decorator
 
 
 def build_schema() -> dict:
@@ -84,6 +79,13 @@ def build_parser() -> argparse.ArgumentParser:
         "get", help="print the machine-readable command schema", formatter_class=_TimedHelpFormatter
     )
     schema_get.add_argument("--json", action="store_true", help="JSON output (schema get is JSON by default)")
+
+    auth = resources.add_parser("auth", help="credentials lifecycle", formatter_class=_TimedHelpFormatter)
+    auth_actions = auth.add_subparsers(dest="action", required=True, metavar="<action>")
+    auth_status = auth_actions.add_parser(
+        "status", help="show credential sources (never values)", formatter_class=_TimedHelpFormatter
+    )
+    auth_status.add_argument("--json", action="store_true", help="JSON output")
 
     return parser
 
