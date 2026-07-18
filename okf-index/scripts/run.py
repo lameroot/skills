@@ -24,6 +24,7 @@ try:  # package-style import when loaded as a module; fallback for direct script
     from . import auth  # noqa: F401  registers auth/* handlers
     from . import clock
     from . import doctor  # noqa: F401  registers doctor/check handler
+    from .connectors import doc as _doc_mod, note as _note_mod  # noqa: F401
     from .okf import validate  # noqa: F401  registers bundle/validate handler
     from .envelope import emit_error, emit_success
     from .errors import SkillError, UsageError
@@ -33,6 +34,7 @@ except ImportError:
     import auth  # noqa: F401,E402  type: ignore[no-redef]
     import clock  # type: ignore[no-redef]
     import doctor  # noqa: F401,E402  type: ignore[no-redef]
+    from connectors import doc as _doc_mod, note as _note_mod  # noqa: F401,E402
     from okf import validate  # noqa: F401,E402  type: ignore[no-redef]
     from envelope import emit_error, emit_success  # type: ignore[no-redef]
     from errors import SkillError, UsageError  # type: ignore[no-redef]
@@ -109,6 +111,25 @@ def build_parser() -> argparse.ArgumentParser:
     bv = bundle_actions.add_parser("validate", help="check OKF v0.1 conformance", formatter_class=_TimedHelpFormatter)
     bv.add_argument("--bundle", required=True, help="path to OKF bundle/vault dir")
     bv.add_argument("--json", action="store_true", help="JSON output")
+
+    note_p = resources.add_parser("note", help="personal notes", formatter_class=_TimedHelpFormatter)
+    note_actions = note_p.add_subparsers(dest="action", required=True, metavar="<action>")
+    note_add = note_actions.add_parser("add", help="add a note as an OKF Note concept", formatter_class=_TimedHelpFormatter)
+    note_add.add_argument("text", nargs="?", default="", help="note text (or use --file)")
+    note_add.add_argument("--file", help="read note body from a file")
+    note_add.add_argument("--title", help="concept title (default: first line)")
+    note_add.add_argument("--json", action="store_true", help="JSON output")
+    note_add.add_argument("--dry-run", action="store_true", help="preview without writing")
+    note_add.add_argument("--yes", action="store_true", help="execute the mutation")
+
+    doc_p = resources.add_parser("doc", help="local documents", formatter_class=_TimedHelpFormatter)
+    doc_actions = doc_p.add_subparsers(dest="action", required=True, metavar="<action>")
+    doc_ingest_p = doc_actions.add_parser("ingest", help="ingest .md/.txt as Document concepts", formatter_class=_TimedHelpFormatter)
+    doc_ingest_p.add_argument("path", help="file or directory")
+    doc_ingest_p.add_argument("--recursive", action="store_true", help="recurse into directories")
+    doc_ingest_p.add_argument("--json", action="store_true", help="JSON output")
+    doc_ingest_p.add_argument("--dry-run", action="store_true", help="preview without writing")
+    doc_ingest_p.add_argument("--yes", action="store_true", help="execute the mutation")
 
     return parser
 
