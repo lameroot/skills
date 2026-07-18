@@ -24,6 +24,7 @@ try:  # package-style import when loaded as a module; fallback for direct script
     from . import auth  # noqa: F401  registers auth/* handlers
     from . import clock
     from . import doctor  # noqa: F401  registers doctor/check handler
+    from .okf import validate  # noqa: F401  registers bundle/validate handler
     from .envelope import emit_error, emit_success
     from .errors import SkillError, UsageError
     from .registry import HANDLERS, register
@@ -32,6 +33,7 @@ except ImportError:
     import auth  # noqa: F401,E402  type: ignore[no-redef]
     import clock  # type: ignore[no-redef]
     import doctor  # noqa: F401,E402  type: ignore[no-redef]
+    from okf import validate  # noqa: F401,E402  type: ignore[no-redef]
     from envelope import emit_error, emit_success  # type: ignore[no-redef]
     from errors import SkillError, UsageError  # type: ignore[no-redef]
     from registry import HANDLERS, register  # type: ignore[no-redef]
@@ -101,6 +103,12 @@ def build_parser() -> argparse.ArgumentParser:
     doctor_p = resources.add_parser("doctor", help="atomic readiness check", formatter_class=_TimedHelpFormatter)
     doctor_p.set_defaults(action="check")
     doctor_p.add_argument("--json", action="store_true", help="JSON output")
+
+    bundle = resources.add_parser("bundle", help="bundle operations", formatter_class=_TimedHelpFormatter)
+    bundle_actions = bundle.add_subparsers(dest="action", required=True, metavar="<action>")
+    bv = bundle_actions.add_parser("validate", help="check OKF v0.1 conformance", formatter_class=_TimedHelpFormatter)
+    bv.add_argument("--bundle", required=True, help="path to OKF bundle/vault dir")
+    bv.add_argument("--json", action="store_true", help="JSON output")
 
     return parser
 
