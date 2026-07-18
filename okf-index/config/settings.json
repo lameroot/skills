@@ -121,23 +121,6 @@
       }
     },
     {
-      "name": "CONFLUENCE_USERNAME",
-      "type": "string",
-      "required": false,
-      "credential": true,
-      "secret": false,
-      "account": "CONFLUENCE_USERNAME",
-      "prompt": "Confluence username",
-      "description": "Username for Confluence REST API (optional — leave empty for Bearer-token-only auth).",
-      "help": {
-        "source": "Your Confluence account.",
-        "instructions": [
-          "Use auth setup for local OS keyring storage.",
-          "Use CONFLUENCE_USERNAME only as the CI/headless environment fallback."
-        ]
-      }
-    },
-    {
       "name": "CONFLUENCE_API_TOKEN",
       "type": "string",
       "required": false,

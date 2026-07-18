@@ -41,8 +41,6 @@ def test_reports_source_keyring_env_missing(capsys, monkeypatch):
     creds = {c["account"]: c for c in payload["data"]["credentials"]}
     assert creds["ENRICH_API_KEY"]["source"] == "keyring"
     assert creds["CONFLUENCE_API_TOKEN"]["source"] == "environment"
-    assert creds["CONFLUENCE_USERNAME"]["source"] == "missing"
-    assert creds["CONFLUENCE_USERNAME"]["configured"] is False
 
 
 def test_backend_name_reported(capsys, monkeypatch):
@@ -58,7 +56,7 @@ def test_backend_name_reported(capsys, monkeypatch):
 
 def test_unavailable_backend_reported(capsys, monkeypatch):
     monkeypatch.setattr(credentials, "_real_keyring", None)
-    for v in ("ENRICH_API_KEY", "CONFLUENCE_USERNAME", "CONFLUENCE_API_TOKEN"):
+    for v in ("ENRICH_API_KEY", "CONFLUENCE_API_TOKEN"):
         monkeypatch.delenv(v, raising=False)
     rc = run.main(["auth", "status", "--json"])
     payload = json.loads(capsys.readouterr().out)

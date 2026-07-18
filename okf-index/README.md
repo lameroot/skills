@@ -78,7 +78,6 @@ Open `OKF_VAULT_PATH` (default `~/okf-vault`) in [Obsidian](https://obsidian.md)
 | Variable | How to get |
 |----------|------------|
 | `CONFLUENCE_BASE_URL` | Your Confluence instance URL, e.g. `https://your-company.atlassian.net` |
-| `CONFLUENCE_USERNAME` | Your Confluence login (email) |
 | `CONFLUENCE_API_TOKEN` | Confluence → Profile → Personal Access Tokens → `Create token` |
 
 ### Telegram

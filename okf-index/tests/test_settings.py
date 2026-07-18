@@ -59,5 +59,5 @@ def test_apply_defaults_to_environ_sets_nonsecret_only():
     assert env.get("OKF_VAULT_PATH") == "~/okf-vault"
     assert env.get("OKF_ENRICH_PROVIDER") == "openai"
     # credentials are NEVER seeded into env
-    for cred in ("ENRICH_API_KEY", "CONFLUENCE_USERNAME", "CONFLUENCE_API_TOKEN"):
+    for cred in ("ENRICH_API_KEY", "CONFLUENCE_API_TOKEN"):
         assert cred not in env

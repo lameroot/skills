@@ -30,7 +30,7 @@ def _setup(monkeypatch, **fail):
     fake.fail_on = set(fail.get("fail_on", ()))
     monkeypatch.setattr(credentials, "_real_keyring", fake)
     # ensure clean env so tests are deterministic
-    for v in ("ENRICH_API_KEY", "CONFLUENCE_USERNAME", "CONFLUENCE_API_TOKEN"):
+    for v in ("ENRICH_API_KEY", "CONFLUENCE_API_TOKEN"):
         monkeypatch.delenv(v, raising=False)
     return fake
 
@@ -47,19 +47,19 @@ def test_dry_run_no_write(capsys, monkeypatch):
 
 def test_yes_writes_via_fake_keyring(capsys, monkeypatch):
     fake = _setup(monkeypatch)
-    auth.set_setup_values({"CONFLUENCE_USERNAME": "alice", "CONFLUENCE_API_TOKEN": "tok-1"})
+    auth.set_setup_values({"ENRICH_API_KEY": "alice", "CONFLUENCE_API_TOKEN": "tok-1"})
     try:
         rc = run.main(["auth", "setup", "--yes", "--json"])
     finally:
         auth.set_setup_values(None)
     assert rc == 0
-    assert fake.store[("skills.okf-index", "CONFLUENCE_USERNAME")] == "alice"
+    assert fake.store[("skills.okf-index", "ENRICH_API_KEY")] == "alice"
     assert fake.store[("skills.okf-index", "CONFLUENCE_API_TOKEN")] == "tok-1"
 
 
 def test_rollback_on_second_entry_failure(capsys, monkeypatch):
     fake = _setup(monkeypatch, fail_on={"CONFLUENCE_API_TOKEN"})
-    auth.set_setup_values({"CONFLUENCE_USERNAME": "alice", "CONFLUENCE_API_TOKEN": "tok-1"})
+    auth.set_setup_values({"ENRICH_API_KEY": "alice", "CONFLUENCE_API_TOKEN": "tok-1"})
     try:
         rc = run.main(["auth", "setup", "--yes", "--json"])
     finally:
@@ -69,7 +69,7 @@ def test_rollback_on_second_entry_failure(capsys, monkeypatch):
     failure = json.loads(captured.err)
     assert failure["success"] is False
     # USERNAME was written then rolled back
-    assert ("skills.okf-index", "CONFLUENCE_USERNAME") not in fake.store
+    assert ("skills.okf-index", "ENRICH_API_KEY") not in fake.store
 
 
 def test_setup_never_leaks_secret(capsys, monkeypatch):
@@ -105,12 +105,12 @@ def test_setup_requires_yes_or_dryrun(capsys, monkeypatch):
 
 def test_check_reports_configured(capsys, monkeypatch):
     fake = _setup(monkeypatch)
-    fake.store[("skills.okf-index", "CONFLUENCE_USERNAME")] = "bob"
+    fake.store[("skills.okf-index", "ENRICH_API_KEY")] = "bob"
     monkeypatch.setattr(credentials, "_real_keyring", fake)
     rc = run.main(["auth", "check", "--json"])
     payload = json.loads(capsys.readouterr().out)
     assert rc == 0
-    assert "CONFLUENCE_USERNAME" in payload["data"]["configured"]
+    assert "ENRICH_API_KEY" in payload["data"]["configured"]
 
 
 def test_delete_removes_and_dryrun_noop(capsys, monkeypatch):

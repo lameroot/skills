@@ -40,8 +40,7 @@ uv run --script scripts/run.py <resource> [subresource] <action> --help
 | `ENRICH_BASE_URL` | — | Custom base URL for the enrichment endpoint (optional) |
 | `OKF_ENRICH_MODEL` | — | Override model id |
 | `CONFLUENCE_BASE_URL` | — | Confluence instance URL |
-| `CONFLUENCE_API_TOKEN` | — | Confluence API token (credential) |
-| `CONFLUENCE_USERNAME` | — | Confluence login (credential; optional — for Bearer-only leave empty) |
+| `CONFLUENCE_API_TOKEN` | — | Confluence API token (credential; Bearer auth) |
 
 ## CLI grammar
 
