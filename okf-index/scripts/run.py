@@ -82,10 +82,17 @@ def build_parser() -> argparse.ArgumentParser:
 
     auth = resources.add_parser("auth", help="credentials lifecycle", formatter_class=_TimedHelpFormatter)
     auth_actions = auth.add_subparsers(dest="action", required=True, metavar="<action>")
-    auth_status = auth_actions.add_parser(
-        "status", help="show credential sources (never values)", formatter_class=_TimedHelpFormatter
-    )
-    auth_status.add_argument("--json", action="store_true", help="JSON output")
+    for act, help_text in (
+        ("status", "show credential sources (never values)"),
+        ("setup", "store credentials in the OS keyring"),
+        ("check", "report configured/missing credentials"),
+        ("delete", "remove credentials from the OS keyring"),
+    ):
+        p = auth_actions.add_parser(act, help=help_text, formatter_class=_TimedHelpFormatter)
+        p.add_argument("--json", action="store_true", help="JSON output")
+        if act in ("setup", "delete"):
+            p.add_argument("--dry-run", action="store_true", help="preview without writing")
+            p.add_argument("--yes", action="store_true", help="execute the mutation")
 
     return parser
 

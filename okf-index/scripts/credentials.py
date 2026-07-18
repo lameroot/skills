@@ -82,3 +82,64 @@ def require_credentials(
     if missing:
         raise CredentialResolutionError("Missing credentials: " + ", ".join(missing))
     return {n: values[n] for n in names}
+
+
+def _credential_accounts(config: dict) -> list[tuple[str, str]]:
+    return [
+        (it["name"], it.get("account", it["name"]))
+        for it in config["settings"]
+        if it.get("credential")
+    ]
+
+
+def store_credentials(config: dict, values: dict[str, str], keyring_backend: Any = None) -> list[tuple[str, str]]:
+    """Write credential values to the keyring with rollback on any failure.
+
+    Empty values are skipped (validation-before-write: never store blanks).
+    On exception, all already-written entries are deleted (best-effort rollback).
+    """
+    backend = _get_backend(keyring_backend)
+    if backend is None:
+        raise CredentialResolutionError("keyring backend unavailable")
+    service = config["keyring_service"]
+    written: list[tuple[str, str]] = []
+    try:
+        for name, account in _credential_accounts(config):
+            val = values.get(name)
+            if not val:
+                continue
+            backend.set_password(service, account, val)
+            written.append((name, account))
+    except Exception as exc:  # noqa: BLE001 - any backend failure triggers rollback
+        for name, account in written:
+            try:
+                backend.delete_password(service, account)
+            except Exception:  # noqa: BLE001 - best-effort rollback
+                pass
+        raise CredentialResolutionError(
+            f"credential store failed; rolled back {len(written)} entries: {exc}"
+        ) from exc
+    return written
+
+
+def delete_credentials(
+    config: dict, keyring_backend: Any = None, names: list[str] | None = None
+) -> list[tuple[str, str]]:
+    """Delete credential entries that are present in the keyring (env entries are left alone)."""
+    backend = _get_backend(keyring_backend)
+    if backend is None:
+        raise CredentialResolutionError("keyring backend unavailable")
+    service = config["keyring_service"]
+    accounts = _credential_accounts(config)
+    if names:
+        wanted = set(names)
+        accounts = [a for a in accounts if a[0] in wanted]
+    deleted: list[tuple[str, str]] = []
+    for name, account in accounts:
+        try:
+            if backend.get_password(service, account):
+                backend.delete_password(service, account)
+                deleted.append((name, account))
+        except Exception:  # noqa: BLE001 - best-effort delete
+            pass
+    return deleted
