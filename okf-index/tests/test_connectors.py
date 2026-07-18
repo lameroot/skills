@@ -6,6 +6,7 @@ import pytest
 
 import run
 import vault
+from connectors import doc
 from errors import UsageError
 from okf.validate import validate_bundle
 
@@ -43,11 +44,13 @@ def test_doc_ingest_md_txt_recursive_pdf_skipped(monkeypatch, tmp_path, capsys):
     (src / "a.md").write_text("alpha", encoding="utf-8")
     (sub / "b.txt").write_text("beta", encoding="utf-8")
     (src / "c.pdf").write_text("%PDF-", encoding="utf-8")
+    (src / "d.exe").write_text("binary", encoding="utf-8")
+    monkeypatch.setattr(doc, "_convert_office", lambda p: f"[converted {p.name}]")
     rc = run.main(["doc", "ingest", str(src), "--recursive", "--yes", "--json"])
     assert rc == 0
     payload = json.loads(capsys.readouterr().out)["data"]
-    assert len(payload["created"]) == 2  # a.md + b.txt
-    assert "c.pdf" in payload["skipped"]
+    assert len(payload["created"]) == 3  # a.md + b.txt + c.pdf
+    assert "d.exe" in payload["skipped"]
     assert validate_bundle(v)["conformant"]
 
 

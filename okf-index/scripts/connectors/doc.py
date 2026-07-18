@@ -1,4 +1,4 @@
-"""doc resource: ingest local .md/.txt documents as OKF Document concepts (mechanical)."""
+"""doc resource: ingest local documents (.md/.txt/.pdf/.docx/.pptx/.html) as OKF Document concepts."""
 from __future__ import annotations
 
 import argparse
@@ -13,7 +13,21 @@ from okf.writer import list_titles, write_concept
 from registry import register
 from vault import resolve_vault
 
-ALLOWED = {".md", ".txt"}
+MD_TEXT = {".md", ".txt"}
+OFFICE = {".pdf", ".docx", ".pptx", ".html", ".htm"}
+ALLOWED = MD_TEXT | OFFICE
+
+
+def _convert_office(path: Path) -> str:
+    """Convert office/pdf/html to markdown via markitdown."""
+    try:
+        from markitdown import MarkItDown
+
+        return MarkItDown().convert(source=str(path)).text_content
+    except ImportError:
+        raise RuntimeError("markitdown not installed. Install: pip install 'markitdown[all]'")
+    except Exception as exc:
+        return f"[conversion failed: {exc}]"
 
 
 def _collect(target: Path, recursive: bool) -> tuple[list[Path], list[Path]]:
@@ -28,7 +42,7 @@ def _collect(target: Path, recursive: bool) -> tuple[list[Path], list[Path]]:
     elif target.is_file():
         (files if target.suffix.lower() in ALLOWED else skipped).append(target)
     else:
-        raise NotFoundError(f"path not found: {target}")
+        raise NotFoundError("not_found", f"path not found: {target}")
     return files, skipped
 
 
@@ -40,22 +54,21 @@ def doc_ingest(args: argparse.Namespace, out, err) -> int:
 
     if is_dry_run(args):
         emit_success(
-            {
-                "dry_run": True,
-                "would_ingest": [str(f) for f in sorted(files)],
-                "skipped": [s.name for s in skipped],
-            },
+            {"dry_run": True, "would_ingest": [str(f) for f in sorted(files)], "skipped": [s.name for s in skipped]},
             out,
         )
         return 0
     if not is_confirmed(args):
-        emit_error("usage", "doc ingest requires --dry-run or --yes", err, hint="set OKF_INDEX_AUTO_CONFIRM=1 for automation")
+        emit_error("usage", "doc ingest requires --dry-run or --yes", err, hint="set OKF_INDEX_AUTO_CONFIRM=1")
         return 2
 
     created = []
     existing_titles = list_titles(vault)
     for f in sorted(files):
-        body = f.read_text(encoding="utf-8", errors="replace")
+        if f.suffix.lower() in MD_TEXT:
+            body = f.read_text(encoding="utf-8", errors="replace")
+        else:
+            body = _convert_office(f)
         concept = Concept(type="Document", title=f.stem, body=body, source="doc", resource=str(f))
         enrich(concept, existing_titles)
         path = write_concept(vault, concept)

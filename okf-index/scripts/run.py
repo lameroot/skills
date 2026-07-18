@@ -9,6 +9,7 @@
 #   "requests>=2.31",
 #   "beautifulsoup4>=4.12",
 #   "markdownify>=0.11",
+#   "markitdown>=0.1",
 # ]
 # ///
 """okf-index CLI launcher.
