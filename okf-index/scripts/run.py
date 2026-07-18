@@ -21,6 +21,7 @@ from pathlib import Path
 try:  # package-style import when loaded as a module; fallback for direct script run
     from . import auth  # noqa: F401  registers auth/* handlers
     from . import clock
+    from . import doctor  # noqa: F401  registers doctor/check handler
     from .envelope import emit_error, emit_success
     from .errors import SkillError, UsageError
     from .registry import HANDLERS, register
@@ -28,6 +29,7 @@ except ImportError:
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     import auth  # noqa: F401,E402  type: ignore[no-redef]
     import clock  # type: ignore[no-redef]
+    import doctor  # noqa: F401,E402  type: ignore[no-redef]
     from envelope import emit_error, emit_success  # type: ignore[no-redef]
     from errors import SkillError, UsageError  # type: ignore[no-redef]
     from registry import HANDLERS, register  # type: ignore[no-redef]
@@ -93,6 +95,10 @@ def build_parser() -> argparse.ArgumentParser:
         if act in ("setup", "delete"):
             p.add_argument("--dry-run", action="store_true", help="preview without writing")
             p.add_argument("--yes", action="store_true", help="execute the mutation")
+
+    doctor_p = resources.add_parser("doctor", help="atomic readiness check", formatter_class=_TimedHelpFormatter)
+    doctor_p.set_defaults(action="check")
+    doctor_p.add_argument("--json", action="store_true", help="JSON output")
 
     return parser
 
