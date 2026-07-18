@@ -17,15 +17,28 @@ from pathlib import Path
 from typing import Callable
 
 try:  # package-style import when loaded as a module; fallback for direct script run
+    from . import clock
     from .envelope import emit_error, emit_success
     from .errors import SkillError, UsageError
 except ImportError:
     sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import clock  # type: ignore[no-redef]
     from envelope import emit_error, emit_success  # type: ignore[no-redef]
     from errors import SkillError, UsageError  # type: ignore[no-redef]
 
 VERSION = "0.1.0"
 OKF_VERSION = "0.1"
+
+
+class _TimedHelpFormatter(argparse.RawDescriptionHelpFormatter):
+    """Prepend the AGENTS.md-mandated `Current time (...)` line to every --help level."""
+
+    def format_help(self) -> str:
+        try:
+            header = clock.time_line() + "\n\n"
+        except Exception:  # noqa: BLE001 - never let help crash on clock failure
+            header = ""
+        return header + super().format_help()
 
 Handler = Callable[[argparse.Namespace, object, object], int]
 HANDLERS: dict[tuple[str, str], Handler] = {}
@@ -61,12 +74,15 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="run.py",
         description="okf-index — OKF knowledge base builder (Confluence/web/docs/notes -> Obsidian vault + FTS5 search).",
+        formatter_class=_TimedHelpFormatter,
     )
     resources = parser.add_subparsers(dest="resource", required=True, metavar="<resource>")
 
-    schema = resources.add_parser("schema", help="CLI schema introspection")
+    schema = resources.add_parser("schema", help="CLI schema introspection", formatter_class=_TimedHelpFormatter)
     schema_actions = schema.add_subparsers(dest="action", required=True, metavar="<action>")
-    schema_get = schema_actions.add_parser("get", help="print the machine-readable command schema")
+    schema_get = schema_actions.add_parser(
+        "get", help="print the machine-readable command schema", formatter_class=_TimedHelpFormatter
+    )
     schema_get.add_argument("--json", action="store_true", help="JSON output (schema get is JSON by default)")
 
     return parser
