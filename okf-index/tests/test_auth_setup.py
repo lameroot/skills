@@ -30,7 +30,7 @@ def _setup(monkeypatch, **fail):
     fake.fail_on = set(fail.get("fail_on", ()))
     monkeypatch.setattr(credentials, "_real_keyring", fake)
     # ensure clean env so tests are deterministic
-    for v in ("GEMINI_API_KEY", "OPENAI_API_KEY", "CONFLUENCE_USERNAME", "CONFLUENCE_API_TOKEN"):
+    for v in ("ENRICH_API_KEY", "CONFLUENCE_USERNAME", "CONFLUENCE_API_TOKEN"):
         monkeypatch.delenv(v, raising=False)
     return fake
 

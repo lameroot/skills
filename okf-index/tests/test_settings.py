@@ -28,7 +28,7 @@ def test_env_overrides_nonsecret_default_only():
     assert sources["OKF_VAULT_PATH"] == "environment"
     # a non-overridden non-secret falls back to default
     assert sources["OKF_ENRICH_PROVIDER"] == "default"
-    assert values["OKF_ENRICH_PROVIDER"] == "gemini"
+    assert values["OKF_ENRICH_PROVIDER"] == "openai"
 
 
 def test_types_validated():
@@ -57,7 +57,7 @@ def test_apply_defaults_to_environ_sets_nonsecret_only():
     env = {}
     settings.apply_defaults_to_environ(cfg, env=env)
     assert env.get("OKF_VAULT_PATH") == "~/okf-vault"
-    assert env.get("OKF_ENRICH_PROVIDER") == "gemini"
+    assert env.get("OKF_ENRICH_PROVIDER") == "openai"
     # credentials are NEVER seeded into env
-    for cred in ("GEMINI_API_KEY", "OPENAI_API_KEY", "CONFLUENCE_USERNAME", "CONFLUENCE_API_TOKEN"):
+    for cred in ("ENRICH_API_KEY", "CONFLUENCE_USERNAME", "CONFLUENCE_API_TOKEN"):
         assert cred not in env

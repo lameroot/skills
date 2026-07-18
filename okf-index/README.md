@@ -65,14 +65,13 @@ Open `OKF_VAULT_PATH` (default `~/okf-vault`) in [Obsidian](https://obsidian.md)
 | `OKF_VAULT_PATH` | `~/okf-vault` | Keep default or point to your Obsidian vault |
 | `OKF_INDEX_AUTO_CONFIRM` | — | Set to `1` for automation (CI/eval) |
 
-### LLM enrichment (always-on, uses Gemini by default)
+### LLM enrichment (always-on, OpenAI-compatible protocol)
 
 | Variable | How to get |
 |----------|------------|
-| `GEMINI_API_KEY` | [Google AI Studio](https://aistudio.google.com/apikey) → `Create API Key` |
-| `OKF_ENRICH_PROVIDER` | `gemini` (default) or `openai` |
-| `OKF_ENRICH_MODEL` | `gemini-2.0-flash` (default) or `gpt-4.1-mini` |
-| `OPENAI_API_KEY` | Only if using OpenAI provider |
+| `ENRICH_API_KEY` | Your API key (any OpenAI-compatible provider) |
+| `ENRICH_BASE_URL` | Custom endpoint base URL (optional; empty = default) |
+| `OKF_ENRICH_MODEL` | Model id (default: gpt-4.1-mini) |
 
 ### Confluence
 

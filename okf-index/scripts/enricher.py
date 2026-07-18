@@ -72,78 +72,37 @@ def _parse(response_text: str) -> EnrichResult:
 
 
 def create_provider() -> EnrichProvider | None:
-    """Factory: resolve provider from settings + credentials. Returns None if unavailable."""
+    """Factory: resolve provider from settings + credentials. Uses OpenAI-compatible protocol."""
     from settings import load_settings_config, resolve_runtime_settings
 
     cfg = load_settings_config()
     vals, _ = resolve_runtime_settings(cfg)
-    provider_name = vals.get("OKF_ENRICH_PROVIDER", "gemini").lower()
     model = vals.get("OKF_ENRICH_MODEL", "") or None
+    base_url = vals.get("ENRICH_BASE_URL", "") or None
 
-    if provider_name == "gemini":
-        try:
-            from google import genai
-
-            from credentials import require_credentials
-
-            creds = require_credentials(["GEMINI_API_KEY"], cfg)
-            api_key = creds.get("GEMINI_API_KEY")
-            if not api_key:
-                logger.warning("GEMINI_API_KEY not configured; enrich will use stub")
-                return None
-            return GeminiProvider(api_key, model=model)
-        except ImportError:
-            logger.warning("google-generativeai not installed; pip install google-generativeai")
+    try:
+        from credentials import require_credentials
+        creds = require_credentials(["ENRICH_API_KEY"], cfg)
+        api_key = creds.get("ENRICH_API_KEY")
+        if not api_key:
+            logger.warning("ENRICH_API_KEY not configured; enrich will use stub")
             return None
-    elif provider_name == "openai":
-        try:
-            from openai import OpenAI
-
-            from credentials import require_credentials
-
-            creds = require_credentials(["OPENAI_API_KEY"], cfg)
-            api_key = creds.get("OPENAI_API_KEY")
-            if not api_key:
-                logger.warning("OPENAI_API_KEY not configured; enrich will use stub")
-                return None
-            return OpenAIProvider(api_key, model=model)
-        except ImportError:
-            logger.warning("openai not installed; pip install openai")
-            return None
-    else:
-        logger.warning("unknown enrich provider '%s'", provider_name)
+        return OpenAICompatProvider(api_key, model=model, base_url=base_url)
+    except Exception:
+        logger.warning("ENRICH_API_KEY not configured; enrich will use stub")
         return None
 
 
-class GeminiProvider:
-    def __init__(self, api_key: str, model: str | None = None):
-        from google import genai
-
-        self.client = genai.Client(api_key=api_key)
-        self.model = model or "gemini-2.0-flash"
-
-    def enrich(self, concept: Concept, existing_titles: list[str]) -> EnrichResult:
-        try:
-            resp = self.client.models.generate_content(
-                model=self.model,
-                contents=_prompt(concept, existing_titles),
-                config={"response_mime_type": "application/json", "max_output_tokens": 256},
-            )
-            return _parse(resp.text)
-        except Exception:
-            logger.exception("Gemini enrichment failed; falling back to stub")
-            return EnrichResult()
-
-    def probe(self) -> str:
-        return f"gemini/{self.model}"
-
-
-class OpenAIProvider:
-    def __init__(self, api_key: str, model: str | None = None):
+class OpenAICompatProvider:
+    def __init__(self, api_key: str, model: str | None = None, base_url: str | None = None):
         from openai import OpenAI
 
-        self.client = OpenAI(api_key=api_key)
+        kwargs = {"api_key": api_key}
+        if base_url:
+            kwargs["base_url"] = base_url
+        self.client = OpenAI(**kwargs)
         self.model = model or "gpt-4.1-mini"
+        self._base_url = base_url
 
     def enrich(self, concept: Concept, existing_titles: list[str]) -> EnrichResult:
         try:
@@ -155,8 +114,9 @@ class OpenAIProvider:
             )
             return _parse(resp.choices[0].message.content or "")
         except Exception:
-            logger.exception("OpenAI enrichment failed; falling back to stub")
+            logger.exception("Enrichment failed; falling back to stub")
             return EnrichResult()
 
     def probe(self) -> str:
-        return f"openai/{self.model}"
+        label = self._base_url or "openai"
+        return f"openai-compat/{self.model} @ {label}"

@@ -23,8 +23,8 @@
       "type": "string",
       "required": false,
       "credential": false,
-      "default": "gemini",
-      "description": "LLM provider used for ingestion enrichment (gemini|openai|local).",
+      "default": "openai",
+      "description": "LLM provider for ingestion enrichment (openai = any OpenAI-compatible API).",
       "help": {
         "source": "The skill ships this default.",
         "instructions": ["Override with OKF_ENRICH_PROVIDER when needed."]
@@ -36,7 +36,7 @@
       "required": false,
       "credential": false,
       "default": "",
-      "description": "Optional model id for enrichment; empty = provider default.",
+      "description": "Model id for enrichment; empty = provider default (e.g. gpt-4.1-mini).",
       "help": {
         "source": "The skill ships this default.",
         "instructions": ["Override with OKF_ENRICH_MODEL when needed."]
@@ -79,39 +79,33 @@
       }
     },
     {
-      "name": "GEMINI_API_KEY",
+      "name": "ENRICH_API_KEY",
       "type": "string",
       "required": false,
       "credential": true,
       "secret": true,
-      "account": "GEMINI_API_KEY",
-      "prompt": "Gemini API key",
-      "description": "API key for the Gemini enrichment provider.",
+      "account": "ENRICH_API_KEY",
+      "prompt": "Enrich API key",
+      "description": "API key for the LLM enrichment provider (OpenAI-compatible protocol).",
       "help": {
-        "source": "Obtain from Google AI Studio or Vertex AI.",
+        "source": "Obtain from your API provider.",
         "instructions": [
           "Use auth setup for local OS keyring storage.",
-          "Use GEMINI_API_KEY only as the CI/headless environment fallback.",
+          "Use ENRICH_API_KEY only as the CI/headless environment fallback.",
           "Never put the value in chat, argv, settings.json, or repository files."
         ]
       }
     },
     {
-      "name": "OPENAI_API_KEY",
+      "name": "ENRICH_BASE_URL",
       "type": "string",
       "required": false,
-      "credential": true,
-      "secret": true,
-      "account": "OPENAI_API_KEY",
-      "prompt": "OpenAI API key",
-      "description": "API key for an OpenAI-compatible enrichment provider.",
+      "credential": false,
+      "default": "",
+      "description": "Base URL for the OpenAI-compatible enrichment endpoint (empty = default).",
       "help": {
-        "source": "Obtain from your OpenAI-compatible provider.",
-        "instructions": [
-          "Use auth setup for local OS keyring storage.",
-          "Use OPENAI_API_KEY only as the CI/headless environment fallback.",
-          "Never put the value in chat, argv, settings.json, or repository files."
-        ]
+        "source": "The skill ships this default.",
+        "instructions": ["Set ENRICH_BASE_URL if your provider has a custom endpoint."]
       }
     },
     {
@@ -134,7 +128,7 @@
       "secret": false,
       "account": "CONFLUENCE_USERNAME",
       "prompt": "Confluence username",
-      "description": "Username for the Confluence REST API.",
+      "description": "Username for Confluence REST API (optional — leave empty for Bearer-token-only auth).",
       "help": {
         "source": "Your Confluence account.",
         "instructions": [

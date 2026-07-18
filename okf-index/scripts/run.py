@@ -6,6 +6,7 @@
 #   "pyyaml>=6,<7",
 #   "unidecode>=1.3,<2",
 #   "google-generativeai>=0.8",
+#   "openai>=1.0",
 #   "requests>=2.31",
 #   "beautifulsoup4>=4.12",
 #   "markdownify>=0.11",

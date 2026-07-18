@@ -35,12 +35,13 @@ uv run --script scripts/run.py <resource> [subresource] <action> --help
 | Var | Default | Purpose |
 |-----|---------|---------|
 | `OKF_VAULT_PATH` | `~/okf-vault` | Bundle root (non-secret) |
-| `OKF_INDEX_AUTO_CONFIRM` | `0` | Skip mutation confirmation (`1`/`true`/`yes`) |
-| `GEMINI_API_KEY` | — | Gemini enrichment (credential) |
-| `OPENAI_API_KEY` | — | OpenAI-compatible enrichment (credential) |
-| `CONFLUENCE_BASE_URL` | — | Confluence endpoint |
-| `CONFLUENCE_USERNAME` | — | Confluence username (credential) |
-| `CONFLUENCE_API_TOKEN` | — | Confluence token (credential) |
+| `OKF_INDEX_AUTO_CONFIRM` | `0` | Skip mutation confirmation (`1`=`true`=`yes`) |
+| `ENRICH_API_KEY` | — | LLM enrichment API key (credential; OpenAI-compatible protocol) |
+| `ENRICH_BASE_URL` | — | Custom base URL for the enrichment endpoint (optional) |
+| `OKF_ENRICH_MODEL` | — | Override model id |
+| `CONFLUENCE_BASE_URL` | — | Confluence instance URL |
+| `CONFLUENCE_API_TOKEN` | — | Confluence API token (credential) |
+| `CONFLUENCE_USERNAME` | — | Confluence login (credential; optional — for Bearer-only leave empty) |
 
 ## CLI grammar
 

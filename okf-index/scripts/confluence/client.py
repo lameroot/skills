@@ -12,7 +12,10 @@ class ConfluenceClient:
     def __init__(self, base_url: str, username: str, api_token: str):
         self.base = base_url.rstrip("/")
         self.session = requests.Session()
-        self.session.auth = HTTPBasicAuth(username, api_token)
+        if username:
+            self.session.auth = HTTPBasicAuth(username, api_token)
+        else:
+            self.session.headers["Authorization"] = f"Bearer {api_token}"
         self.session.headers["Accept"] = "application/json"
 
     def get_page(self, page_id: str) -> dict:
@@ -61,13 +64,19 @@ def html_to_markdown(html: str) -> str:
 
 def create_client() -> ConfluenceClient:
     cfg = load_settings_config()
-    creds = require_credentials(["CONFLUENCE_USERNAME", "CONFLUENCE_API_TOKEN"], cfg)
+    creds = require_credentials(["CONFLUENCE_API_TOKEN"], cfg)
     vals, _ = __import__("settings").resolve_runtime_settings(cfg)
     base = vals.get("CONFLUENCE_BASE_URL") or ""
     if not base:
         from errors import UsageError
         raise UsageError("CONFLUENCE_BASE_URL is not configured", code="confluence_no_base_url")
-    return ConfluenceClient(base, creds["CONFLUENCE_USERNAME"], creds["CONFLUENCE_API_TOKEN"])
+    username = ""
+    try:
+        u = require_credentials(["CONFLUENCE_USERNAME"], cfg)
+        username = u.get("CONFLUENCE_USERNAME", "")
+    except Exception:
+        pass  # username is optional
+    return ConfluenceClient(base, username, creds["CONFLUENCE_API_TOKEN"])
 
 
 # Test injection point

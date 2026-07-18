@@ -63,8 +63,7 @@ def test_cross_links_appended_to_body(monkeypatch, tmp_path):
 
 def test_doctor_skips_enrich_probe_when_no_creds(monkeypatch, tmp_path, capsys):
     _vault(monkeypatch, tmp_path)
-    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
-    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("ENRICH_API_KEY", raising=False)
     enrich.set_provider(None)
     try:
         rc = run.main(["doctor", "--json"])
