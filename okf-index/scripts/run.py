@@ -33,6 +33,9 @@ try:  # package-style import when loaded as a module; fallback for direct script
     from . import search  # noqa: F401  registers search/tag/stats handlers
     from .confluence import ingest as _cf_ingest  # noqa: F401
     from . import web  # noqa: F401  registers web/* handlers
+    from . import telegram  # noqa: F401
+    from . import viz  # noqa: F401  registers bundle/visualize handler
+    from . import build  # noqa: F401  registers bundle/build handler
     from .connectors import doc as _doc_mod, note as _note_mod  # noqa: F401
     from .okf import validate  # noqa: F401  registers bundle/validate handler
     from .envelope import emit_error, emit_success
@@ -47,6 +50,9 @@ except ImportError:
     import search  # noqa: F401,E402  type: ignore[no-redef]
     from confluence import ingest as _cf_ingest  # noqa: F401,E402
     import web  # noqa: F401,E402  type: ignore[no-redef]
+    import telegram  # noqa: F401,E402  type: ignore[no-redef]
+    import viz  # noqa: F401,E402  type: ignore[no-redef]
+    import build  # noqa: F401,E402  type: ignore[no-redef]
     from connectors import doc as _doc_mod, note as _note_mod  # noqa: F401,E402
     from okf import validate  # noqa: F401,E402  type: ignore[no-redef]
     from envelope import emit_error, emit_success  # type: ignore[no-redef]
@@ -193,6 +199,23 @@ def build_parser() -> argparse.ArgumentParser:
     wc.add_argument("--max-depth", type=int, default=2); wc.add_argument("--max-pages", type=int, default=10)
     wc.add_argument("--allowed-host", help="same-domain filter")
     wc.add_argument("--dry-run", action="store_true"); wc.add_argument("--yes", action="store_true")
+
+    tg = resources.add_parser("telegram", help="Telegram operations", formatter_class=_TimedHelpFormatter)
+    tg_actions = tg.add_subparsers(dest="action", required=True, metavar="<action>")
+    tgi = tg_actions.add_parser("ingest", help="ingest channel messages", formatter_class=_TimedHelpFormatter)
+    tgi.add_argument("channel", help="channel username")
+    tgi.add_argument("--limit", type=int, default=50)
+    tgi.add_argument("--json", action="store_true")
+    tgi.add_argument("--dry-run", action="store_true"); tgi.add_argument("--yes", action="store_true")
+
+    bv = bundle_actions.add_parser("visualize", help="generate interactive graph HTML", formatter_class=_TimedHelpFormatter)
+    bv.add_argument("--out", help="output HTML path (default: vault/viz.html)")
+    bv.add_argument("--json", action="store_true")
+
+    bb = bundle_actions.add_parser("build", help="ingest from a sources.yaml manifest", formatter_class=_TimedHelpFormatter)
+    bb.add_argument("--from", dest="from_", default="sources.yaml", help="manifest path")
+    bb.add_argument("--json", action="store_true")
+    bb.add_argument("--dry-run", action="store_true"); bb.add_argument("--yes", action="store_true")
 
     return parser
 

@@ -17,13 +17,13 @@ from vault import resolve_vault
 @register("note", "add")
 def note_add(args: argparse.Namespace, out, err) -> int:
     body = args.text or ""
-    if args.file:
+    if getattr(args, "file", None):
         body = Path(args.file).read_text(encoding="utf-8", errors="replace")
     if not body.strip():
         raise UsageError("note body is empty", code="empty_note", hint="provide text or --file")
     title = args.title or first_line(body) or "untitled"
     vault = resolve_vault(create=not is_dry_run(args))
-    concept = Concept(type="Note", title=title, body=body, source="note", resource=args.file or "")
+    concept = Concept(type="Note", title=title, body=body, source="note", resource=getattr(args, "file", "") or "")
     enrich(concept, list_titles(vault))
 
     if is_dry_run(args):
