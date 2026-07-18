@@ -31,6 +31,7 @@ try:  # package-style import when loaded as a module; fallback for direct script
     from . import indexer  # noqa: F401  registers bundle/index handler
     from . import search  # noqa: F401  registers search/tag/stats handlers
     from .confluence import ingest as _cf_ingest  # noqa: F401
+    from . import web  # noqa: F401  registers web/* handlers
     from .connectors import doc as _doc_mod, note as _note_mod  # noqa: F401
     from .okf import validate  # noqa: F401  registers bundle/validate handler
     from .envelope import emit_error, emit_success
@@ -44,6 +45,7 @@ except ImportError:
     import indexer  # noqa: F401,E402  type: ignore[no-redef]
     import search  # noqa: F401,E402  type: ignore[no-redef]
     from confluence import ingest as _cf_ingest  # noqa: F401,E402
+    import web  # noqa: F401,E402  type: ignore[no-redef]
     from connectors import doc as _doc_mod, note as _note_mod  # noqa: F401,E402
     from okf import validate  # noqa: F401,E402  type: ignore[no-redef]
     from envelope import emit_error, emit_success  # type: ignore[no-redef]
@@ -179,6 +181,17 @@ def build_parser() -> argparse.ArgumentParser:
     doc_ingest_p.add_argument("--json", action="store_true", help="JSON output")
     doc_ingest_p.add_argument("--dry-run", action="store_true", help="preview without writing")
     doc_ingest_p.add_argument("--yes", action="store_true", help="execute the mutation")
+
+    web_p = resources.add_parser("web", help="web operations", formatter_class=_TimedHelpFormatter)
+    web_actions = web_p.add_subparsers(dest="action", required=True, metavar="<action>")
+    wf = web_actions.add_parser("fetch", help="fetch a single page", formatter_class=_TimedHelpFormatter)
+    wf.add_argument("url", help="page URL"); wf.add_argument("--json", action="store_true")
+    wf.add_argument("--dry-run", action="store_true"); wf.add_argument("--yes", action="store_true")
+    wc = web_actions.add_parser("crawl", help="deep crawl a site", formatter_class=_TimedHelpFormatter)
+    wc.add_argument("url", help="seed URL"); wc.add_argument("--json", action="store_true")
+    wc.add_argument("--max-depth", type=int, default=2); wc.add_argument("--max-pages", type=int, default=10)
+    wc.add_argument("--allowed-host", help="same-domain filter")
+    wc.add_argument("--dry-run", action="store_true"); wc.add_argument("--yes", action="store_true")
 
     return parser
 
