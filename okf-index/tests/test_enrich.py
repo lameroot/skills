@@ -54,7 +54,7 @@ def test_cross_links_appended_to_body(monkeypatch, tmp_path):
     enrich.set_provider(FakeEnrichProvider())
     try:
         c = Concept(type="Note", title="New", body="related to Existing Topic about LLM")
-        enrich.enrich(c, ["Existing Topic"])
+        enrich.enrich(c, {"Existing Topic": "note/existing-topic.md"})
         assert "## See also" in (c.body or "")
         assert "Existing Topic" in c.body
     finally:

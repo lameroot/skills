@@ -10,7 +10,7 @@ from enrich import enrich
 from envelope import emit_error, emit_success
 from errors import NotFoundError, PermissionDeniedError, UsageError
 from okf.concept import Concept
-from okf.writer import list_titles, write_concept
+from okf.writer import list_concepts, write_concept
 from registry import register
 from vault import resolve_vault
 
@@ -105,11 +105,11 @@ def confluence_ingest(args: argparse.Namespace, out, err) -> int:
         emit_error("usage", "confluence ingest requires --dry-run or --yes", err, hint="set OKF_INDEX_AUTO_CONFIRM=1")
         return 2
 
-    existing_titles = list_titles(vault)
+    title_to_path = list_concepts(vault)
     created = []
     for page_id, page in tree:
         concept = _page_to_concept(client, page_id, page)
-        enrich(concept, existing_titles)
+        enrich(concept, title_to_path)
         path = write_concept(vault, concept)
         created.append({"path": str(path.relative_to(vault)), "title": concept.title, "id": page_id})
 

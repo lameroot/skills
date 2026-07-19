@@ -8,7 +8,7 @@ from connectors import is_confirmed, is_dry_run
 from enrich import enrich
 from envelope import emit_error, emit_success
 from okf.concept import Concept
-from okf.writer import list_titles, write_concept
+from okf.writer import list_concepts, write_concept
 from registry import register
 from vault import resolve_vault
 
@@ -77,7 +77,7 @@ def web_fetch(args: argparse.Namespace, out, err) -> int:
     if not is_confirmed(args):
         emit_error("usage", "web fetch requires --dry-run or --yes", err)
         return 2
-    enrich(concept, list_titles(vault))
+    enrich(concept, list_concepts(vault))
     path = write_concept(vault, concept)
     emit_success({"created": {"path": str(path.relative_to(vault)), "type": "WebPage", "title": title}}, out)
     return 0
@@ -100,7 +100,7 @@ def web_crawl(args: argparse.Namespace, out, err) -> int:
     if not is_confirmed(args):
         emit_error("usage", "web crawl requires --dry-run or --yes", err)
         return 2
-    existing = list_titles(vault)
+    existing = list_concepts(vault)
     created = []
     for u, md, title in results:
         concept = Concept(type="WebPage", title=title or u, body=md, source="web", resource=u)

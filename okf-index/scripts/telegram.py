@@ -8,7 +8,7 @@ from connectors import is_confirmed, is_dry_run
 from enrich import enrich
 from envelope import emit_error, emit_success
 from okf.concept import Concept
-from okf.writer import list_titles, write_concept
+from okf.writer import list_concepts, write_concept
 from registry import register
 from vault import resolve_vault
 
@@ -51,7 +51,7 @@ def telegram_ingest(args: argparse.Namespace, out, err) -> int:
         emit_error("usage", "telegram ingest requires --dry-run or --yes", err, hint="set OKF_INDEX_AUTO_CONFIRM=1")
         return 2
 
-    existing = list_titles(vault)
+    existing = list_concepts(vault)
     created = []
     for msg in messages:
         body = msg.get("text", "")

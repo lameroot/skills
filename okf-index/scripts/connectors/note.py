@@ -9,7 +9,7 @@ from enrich import enrich, first_line
 from envelope import emit_error, emit_success
 from errors import UsageError
 from okf.concept import Concept
-from okf.writer import list_titles, write_concept
+from okf.writer import list_concepts, write_concept
 from registry import register
 from vault import resolve_vault
 
@@ -24,7 +24,7 @@ def note_add(args: argparse.Namespace, out, err) -> int:
     title = args.title or first_line(body) or "untitled"
     vault = resolve_vault(create=not is_dry_run(args))
     concept = Concept(type="Note", title=title, body=body, source="note", resource=getattr(args, "file", "") or "")
-    enrich(concept, list_titles(vault))
+    enrich(concept, list_concepts(vault))
 
     if is_dry_run(args):
         emit_success({"dry_run": True, "target": {"type": "Note", "title": title}}, out)
