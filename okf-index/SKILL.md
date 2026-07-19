@@ -5,10 +5,10 @@ description: >-
   knowledge base from Confluence, websites, local documents, or own notes, and browse
   it in Obsidian. Produces OKF v0.1 markdown bundles and searches them via SQLite FTS5.
 version: 0.1.0
-schema_command: uv run --script scripts/run.py schema get --json
+schema_command: uv run --quiet --script scripts/run.py schema get --json
 launcher:
   cwd: skill-root
-  command: uv run --script scripts/run.py
+  command: uv run --quiet --script scripts/run.py
 auth:
   type: api_key
   precedence: [keyring, environment]
@@ -40,8 +40,8 @@ Build, fill, and search OKF knowledge bases. Browse in Obsidian — plain markdo
 
 ```bash
 cd okf-index
-uv run --script scripts/run.py schema get --json
-uv run --script scripts/run.py <resource> [subresource] <action> --help
+uv run --quiet --script scripts/run.py schema get --json
+uv run --quiet --script scripts/run.py <resource> [subresource] <action> --help
 ```
 
 ## Required behavior

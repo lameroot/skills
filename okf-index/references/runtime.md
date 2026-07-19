@@ -4,15 +4,15 @@ Always `cd` into the skill directory first.
 
 ```bash
 cd okf-index
-uv run --script scripts/run.py schema get --json
-uv run --script scripts/run.py <resource> [subresource] <action> --help
+uv run --quiet --script scripts/run.py schema get --json
+uv run --quiet --script scripts/run.py <resource> [subresource] <action> --help
 ```
 
 ## Launcher
 
 - `cwd`: skill root (`okf-index/`)
-- `command`: `uv run --script scripts/run.py`
-- `schema`: `uv run --script scripts/run.py schema get --json`
+- `command`: `uv run --quiet --script scripts/run.py`
+- `schema`: `uv run --quiet --script scripts/run.py schema get --json`
 
 ## Envelope
 
@@ -47,8 +47,8 @@ uv run --script scripts/run.py <resource> [subresource] <action> --help
 `resource [subresource] action [args...]`. Examples:
 
 ```bash
-uv run --script scripts/run.py schema get --json
-uv run --script scripts/run.py auth status --json
-uv run --script scripts/run.py note add "text" --title "Title" --yes --json
-uv run --script scripts/run.py search "query" --tag tag1 --limit 10 --json
+uv run --quiet --script scripts/run.py schema get --json
+uv run --quiet --script scripts/run.py auth status --json
+uv run --quiet --script scripts/run.py note add "text" --title "Title" --yes --json
+uv run --quiet --script scripts/run.py search "query" --tag tag1 --limit 10 --json
 ```

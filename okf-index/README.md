@@ -4,7 +4,7 @@ A universal knowledge-base builder for AI agents. Ingests content from Confluenc
 
 ```bash
 cd okf-index
-uv run --script scripts/run.py schema get --json
+uv run --quiet --script scripts/run.py schema get --json
 ```
 
 ## Ingest from anywhere
@@ -39,6 +39,8 @@ uv run --script scripts/run.py search "query" --tag important --type Note --json
 uv run --script scripts/run.py tag list --json
 uv run --script scripts/run.py bundle visualize  # self-contained HTML graph
 ```
+
+Always use `--quiet` with `uv run --script` to suppress uv's metadata on stderr (avoids breaking JSON pipes).
 
 Open `OKF_VAULT_PATH` (default `~/okf-vault`) in [Obsidian](https://obsidian.md) as a vault.
 
