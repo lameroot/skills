@@ -18,29 +18,6 @@ def _first(text: str) -> str:
 first_line = _first  # public alias used by connectors/note.py
 
 
-def _mechanical_tags(concept: Concept) -> list[str]:
-    """Derive baseline tags from source metadata — always present, even without LLM."""
-    tags: list[str] = []
-    if concept.source == "confluence" and concept.resource:
-        # /spaces/SPACEKEY/pages/...
-        if "/spaces/" in concept.resource:
-            parts = concept.resource.split("/spaces/")
-            if len(parts) > 1:
-                tags.append(parts[1].split("/")[0].lower())
-    elif concept.source == "web" and concept.resource:
-        from urllib.parse import urlparse
-        domain = urlparse(concept.resource).netloc.replace("www.", "").split(":")[0]
-        if domain:
-            tags.append(domain)
-    elif concept.source == "doc":
-        tags.append("document")
-    elif concept.source == "note":
-        tags.append("note")
-    elif concept.source == "telegram":
-        tags.append("telegram")
-    return tags
-
-
 def _get_provider() -> EnrichProvider | None:
     global _provider
     if _provider is None:
@@ -57,11 +34,8 @@ def enrich(
     concept: Concept,
     title_to_path: dict[str, str] | None = None,
 ) -> Concept:
-    """Always-on enrichment: mechanical tags + LLM (if configured) + cross-links."""
+    """Always-on enrichment: LLM description + tags + cross-links (stub fallback)."""
     existing_titles = list(title_to_path.keys()) if title_to_path else []
-
-    # Mechanical tags — always
-    mech_tags = _mechanical_tags(concept)
 
     # LLM enrichment — if configured
     prov = _get_provider()
@@ -78,9 +52,9 @@ def enrich(
     else:
         concept.description = f"[stub] {_first(concept.body)}"
 
-    # Tags: mechanical + LLM (merged, deduped)
-    llm_tags = result.tags if result else []
-    concept.tags = list(dict.fromkeys(mech_tags + llm_tags))  # preserve order, dedup
+    # Tags: LLM only (no mechanical tags — user wants meaningful search tags)
+    if result and result.tags:
+        concept.tags = list(dict.fromkeys(result.tags))  # dedup, preserve order
 
     # Cross-links: map LLM-suggested titles to real concept paths
     if result and result.suggested_links and title_to_path:

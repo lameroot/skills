@@ -29,27 +29,34 @@ def parse_page_id(arg: str) -> str:
     raise UsageError(f"cannot extract page id from: {arg}", code="bad_page_id")
 
 
-def _collect_tree(client, page_id: str, depth: int, visited: set | None = None) -> list[tuple[str, dict]]:
-    """Recursively collect (page_id, page_data) tuples up to `depth` levels."""
+def _collect_tree(client, page_id: str, depth: int, parent_slugs: list | None = None, visited: set | None = None) -> list[tuple[str, dict, list]]:
+    """Recursively collect (page_id, page_data, parent_slugs) up to `depth` levels.
+
+    parent_slugs is the list of ancestor directory slugs (for nested vault layout).
+    """
     visited = visited if visited is not None else set()
+    parent_slugs = parent_slugs or []
     if page_id in visited or depth < 0:
         return []
     visited.add(page_id)
-    pages: list[tuple[str, dict]] = []
+    pages: list[tuple[str, dict, list]] = []
     try:
         page = client.get_page(page_id)
-        pages.append((page_id, page))
     except Exception:
-        return pages  # skip pages we can't read
+        return pages
+    pages.append((page_id, page, parent_slugs))
     if depth > 0:
         try:
             children = client.get_children(page_id)
-            for child in children:
-                cid = str(child.get("id", ""))
-                if cid:
-                    pages.extend(_collect_tree(client, cid, depth - 1, visited))
         except Exception:
-            pass  # skip children on error
+            children = []
+        from okf.slug import slugify
+        my_slug = slugify(page.get("title", page_id))
+        child_parent_slugs = parent_slugs + [my_slug]
+        for child in children:
+            cid = str(child.get("id", ""))
+            if cid:
+                pages.extend(_collect_tree(client, cid, depth - 1, child_parent_slugs, visited))
     return pages
 
 
@@ -105,12 +112,13 @@ def confluence_ingest(args: argparse.Namespace, out, err) -> int:
         emit_error("usage", "confluence ingest requires --dry-run or --yes", err, hint="set OKF_INDEX_AUTO_CONFIRM=1")
         return 2
 
-    title_to_path = list_concepts(vault)
+    existing_titles = list_concepts(vault)
     created = []
-    for page_id, page in tree:
+    for page_id, page, parent_slugs in tree:
         concept = _page_to_concept(client, page_id, page)
-        enrich(concept, title_to_path)
-        path = write_concept(vault, concept)
+        enrich(concept, list_concepts(vault))
+        subpath = "/".join(parent_slugs)
+        path = write_concept(vault, concept, subpath=subpath)
         created.append({"path": str(path.relative_to(vault)), "title": concept.title, "id": page_id})
 
     emit_success({"created": created, "count": len(created)}, out)

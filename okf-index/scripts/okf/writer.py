@@ -1,4 +1,4 @@
-"""Write an OKF concept into the vault: source_id dedup, slug, log append."""
+"""Write an OKF concept into the vault: source_id dedup, slug, nested subpath, log."""
 from __future__ import annotations
 
 import datetime as _dt
@@ -14,11 +14,14 @@ def _today() -> str:
     return _dt.date.today().isoformat()
 
 
-def _find_by_source_id(source_dir: Path, source_id: str) -> Path | None:
-    """Find an existing concept file by source_id (for update-in-place)."""
-    if not source_id or not source_dir.exists():
+def _find_by_source_id(vault: Path, source: str, source_id: str) -> Path | None:
+    """Find an existing concept by source_id anywhere under <vault>/<source>/ tree."""
+    if not source_id:
         return None
-    for p in source_dir.glob("*.md"):
+    source_root = vault / source
+    if not source_root.exists():
+        return None
+    for p in source_root.rglob("*.md"):
         try:
             meta, _ = frontmatter.parse(p.read_text(encoding="utf-8"))
         except Exception:
@@ -28,19 +31,25 @@ def _find_by_source_id(source_dir: Path, source_id: str) -> Path | None:
     return None
 
 
-def write_concept(vault: Path, concept: Concept) -> Path:
+def write_concept(vault: Path, concept: Concept, subpath: str = "") -> Path:
+    """Write concept to <vault>/<source>/[<subpath>/]<slug>.md.
+
+    subpath: optional nested directory (e.g. "root-slug/child-slug" for Confluence trees).
+    Dedup: if source_id exists anywhere under <source>/, update that file in place.
+    """
     vault = Path(vault)
     source = concept.source or "misc"
-    source_dir = vault / source
 
     if not concept.source_id:
         concept.source_id = make_source_id(source, concept.body)
 
-    # Dedup by source_id: update existing file instead of creating -2/-3 duplicate
-    existing = _find_by_source_id(source_dir, concept.source_id)
+    # Dedup: find existing by source_id (search entire source tree)
+    existing = _find_by_source_id(vault, source, concept.source_id)
     if existing:
         path = existing
     else:
+        # New: build path with optional subpath
+        source_dir = vault / source / subpath if subpath else vault / source
         source_dir.mkdir(parents=True, exist_ok=True)
         taken = {p.stem for p in source_dir.glob("*.md")}
         base = slugify(concept.title or "untitled")
@@ -49,12 +58,11 @@ def write_concept(vault: Path, concept: Concept) -> Path:
 
     text = frontmatter.dump(concept.frontmatter(), concept.body)
     path.write_text(text, encoding="utf-8")
-    append_log(vault / "log.md", _today(), [f"**Ingest**: {source}/{path.stem}"])
+    append_log(vault / "log.md", _today(), [f"**Ingest**: {source}/{path.relative_to(vault / source)}"])
     return path
 
 
 def list_titles(vault: Path) -> list[str]:
-    """Return titles of all existing concepts (legacy — for enrich prompt context)."""
     return list(list_concepts(vault).keys())
 
 
