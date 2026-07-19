@@ -161,13 +161,14 @@ def build_parser() -> argparse.ArgumentParser:
     for act, h in (("get", "fetch a page by id"), ("search", "search pages via CQL"), ("ingest", "ingest a page as an OKF concept")):
         p = cf_actions.add_parser(act, help=h, formatter_class=_TimedHelpFormatter)
         if act in ("get", "ingest"):
-            p.add_argument("page_id", help="Confluence page ID")
+            p.add_argument("page_id", help="Confluence page ID or URL")
         elif act == "search":
             p.add_argument("q", help="search query text")
             p.add_argument("--space", help="space key filter")
             p.add_argument("--limit", type=int, default=20)
         p.add_argument("--json", action="store_true", help="JSON output")
         if act == "ingest":
+            p.add_argument("--depth", type=int, default=0, help="recursion depth: 0=page only, 1=+children, -1=all")
             p.add_argument("--dry-run", action="store_true")
             p.add_argument("--yes", action="store_true")
 

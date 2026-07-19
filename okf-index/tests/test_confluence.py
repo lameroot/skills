@@ -6,12 +6,13 @@ import confluence.client as client
 import enrich
 import run
 import vault
+from confluence.ingest import parse_page_id
 from enricher import FakeEnrichProvider
 from okf.frontmatter import parse as fm_parse
 
 
 def _mock_client(monkeypatch, **pages):
-    """pages: {page_id: {title, body_html, space}}"""
+    """pages: {page_id: {title, body_html, space, children}}"""
     from confluence.client import ConfluenceClient
 
     fake = MagicMock(spec=ConfluenceClient)
@@ -33,6 +34,12 @@ def _mock_client(monkeypatch, **pages):
 
     fake.get_page.side_effect = get_page
 
+    def get_children(pid, limit=50):
+        p = pages.get(pid, {})
+        return [{"id": cid, "title": pages[cid]["title"]} for cid in p.get("children", [])]
+
+    fake.get_children.side_effect = get_children
+
     def search(cql, limit=20):
         q = cql.replace("text ~ '", "").split("'")[0]
         results = []
@@ -52,6 +59,20 @@ def _vault(monkeypatch, tmp_path):
     return v
 
 
+def test_parse_page_id_numeric():
+    assert parse_page_id("123") == "123"
+
+
+def test_parse_page_id_url():
+    url = "https://confluence.theteamsoft.com/spaces/AI/pages/287205691/Title+here"
+    assert parse_page_id(url) == "287205691"
+
+
+def test_parse_page_id_viewpage():
+    url = "https://confluence.example.com/pages/viewpage.action?pageId=99988"
+    assert parse_page_id(url) == "99988"
+
+
 def test_confluence_get_page_mock(monkeypatch, capsys):
     _mock_client(monkeypatch, **{"123": {"title": "Test Page", "body_html": "<h1>Hello</h1><p>world</p>", "space": "DEMO"}})
     rc = run.main(["confluence", "get", "123", "--json"])
@@ -59,6 +80,14 @@ def test_confluence_get_page_mock(monkeypatch, capsys):
     payload = json.loads(capsys.readouterr().out)
     assert payload["data"]["title"] == "Test Page"
     assert "Hello" in payload["data"]["body"]
+
+
+def test_confluence_get_by_url(monkeypatch, capsys):
+    _mock_client(monkeypatch, **{"42": {"title": "Via URL", "body_html": "<p>x</p>"}})
+    rc = run.main(["confluence", "get", "https://confluence.example.com/spaces/X/pages/42/Some", "--json"])
+    assert rc == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["data"]["title"] == "Via URL"
 
 
 def test_confluence_get_not_found(monkeypatch):
@@ -75,7 +104,7 @@ def test_confluence_search_mock(monkeypatch, capsys):
     assert payload["data"]["count"] == 1
 
 
-def test_confluence_ingest_writes_okf(monkeypatch, tmp_path, capsys):
+def test_confluence_ingest_single(monkeypatch, tmp_path, capsys):
     v = _vault(monkeypatch, tmp_path)
     vault.resolve_vault(path=v, skill_root=tmp_path / "skill")
     _mock_client(monkeypatch, **{"42": {"title": "CF Page", "body_html": "<p>confluence content</p>"}})
@@ -86,8 +115,57 @@ def test_confluence_ingest_writes_okf(monkeypatch, tmp_path, capsys):
     finally:
         enrich.set_provider(None)
     payload = json.loads(capsys.readouterr().out)
-    rel = payload["data"]["created"]["path"]
+    assert payload["data"]["count"] == 1
+    rel = payload["data"]["created"][0]["path"]
     meta, body = fm_parse((v / rel).read_text(encoding="utf-8"))
     assert meta["type"] == "ConfluencePage"
     assert meta["title"] == "CF Page"
     assert meta["source"] == "confluence"
+
+
+def test_confluence_ingest_tree_depth(monkeypatch, tmp_path, capsys):
+    """Ingest a page with children using --depth."""
+    v = _vault(monkeypatch, tmp_path)
+    vault.resolve_vault(path=v, skill_root=tmp_path / "skill")
+    _mock_client(
+        monkeypatch,
+        **{
+            "100": {"title": "Root", "body_html": "<p>root</p>", "children": ["101", "102"]},
+            "101": {"title": "Child A", "body_html": "<p>a</p>", "children": ["103"]},
+            "102": {"title": "Child B", "body_html": "<p>b</p>"},
+            "103": {"title": "Grandchild", "body_html": "<p>gc</p>"},
+        },
+    )
+    enrich.set_provider(FakeEnrichProvider())
+    try:
+        rc = run.main(["confluence", "ingest", "100", "--depth", "2", "--yes", "--json"])
+        assert rc == 0
+    finally:
+        enrich.set_provider(None)
+    payload = json.loads(capsys.readouterr().out)
+    # depth=2: root(100) + children(101,102) + grandchildren(103)
+    assert payload["data"]["count"] == 4
+    titles = {c["title"] for c in payload["data"]["created"]}
+    assert titles == {"Root", "Child A", "Child B", "Grandchild"}
+
+
+def test_confluence_ingest_tree_depth_1(monkeypatch, tmp_path, capsys):
+    """Depth=1: root + direct children only."""
+    v = _vault(monkeypatch, tmp_path)
+    vault.resolve_vault(path=v, skill_root=tmp_path / "skill")
+    _mock_client(
+        monkeypatch,
+        **{
+            "200": {"title": "Root", "body_html": "<p>r</p>", "children": ["201"]},
+            "201": {"title": "Child", "body_html": "<p>c</p>", "children": ["202"]},
+            "202": {"title": "GC", "body_html": "<p>g</p>"},
+        },
+    )
+    enrich.set_provider(FakeEnrichProvider())
+    try:
+        rc = run.main(["confluence", "ingest", "200", "--depth", "1", "--yes", "--json"])
+        assert rc == 0
+    finally:
+        enrich.set_provider(None)
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["data"]["count"] == 2  # root + child, no grandchild

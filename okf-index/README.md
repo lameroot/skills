@@ -16,8 +16,10 @@ uv run --script scripts/run.py note add "Meeting notes..." --title "Weekly" --ye
 # Local documents (md, txt, pdf, docx, pptx, html)
 uv run --script scripts/run.py doc ingest ./docs --recursive --yes --json
 
-# Confluence pages
+# Confluence pages (single or tree with --depth)
 uv run --script scripts/run.py confluence ingest 123456 --yes --json
+uv run --script scripts/run.py confluence ingest 123456 --depth 2 --yes --json   # page + children + grandchildren
+uv run --script scripts/run.py confluence ingest 'https://confluence.example.com/spaces/AI/pages/123456/Title' --depth -1 --yes --json  # URL + full tree
 
 # Websites
 uv run --script scripts/run.py web fetch https://example.com --yes --json
